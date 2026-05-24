@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>2D Car Racing Game</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
+}
+
+body{
+    overflow:hidden;
+    background:#2c3e50;
+    font-family:Arial,sans-serif;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+
+#game-container{
+    position:relative;
+    width:100%;
+    max-width:400px;
+    height:100vh;
+    overflow:hidden;
+    background:#34495e;
+    border-left:5px solid #bdc3c7;
+    border-right:5px solid #bdc3c7;
+}
+
+.road-line{
+    position:absolute;
+    width:10px;
+    height:60px;
+    background:white;
+    left:50%;
+    transform:translateX(-50%);
+}
+
+.game-object{
+    position:absolute;
+    background-size:contain;
+    background-repeat:no-repeat;
+    background-position:center;
+}
+
+#player-car{
+    width:50px;
+    height:80px;
+    bottom:130px;
+    left:175px;
+    z-index:20;
+
+    background-image:url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160"><rect x="10" y="0" width="80" height="150" rx="20" fill="%23e74c3c"/><rect x="0" y="30" width="100" height="20" fill="%23c0392b"/><rect x="20" y="10" width="60" height="130" fill="%23c0392b" rx="15"/><rect x="25" y="70" width="50" height="50" fill="%23ecf0f1" rx="10"/></svg>');
+}
+
+.enemy-car{
+    width:50px;
+    height:80px;
+    z-index:9;
+
+    background-image:url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160"><rect x="10" y="0" width="80" height="150" rx="20" fill="%233498db"/><rect x="0" y="30" width="100" height="20" fill="%232980b9"/><rect x="20" y="10" width="60" height="130" fill="%232980b9" rx="15"/><rect x="25" y="40" width="50" height="50" fill="%23ecf0f1" rx="10"/></svg>');
+}
+
+.fuel-can{
+    width:40px;
+    height:40px;
+    z-index:9;
+
+    background-image:url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect x="10" y="0" width="80" height="100" rx="10" fill="%232ecc71"/><text x="50" y="68" font-size="42" fill="white" text-anchor="middle">F</text></svg>');
+}
+
+#ui-container{
+    position:absolute;
+    top:10px;
+    width:100%;
+    padding:0 10px;
+    color:white;
+    z-index:30;
+    text-shadow:2px 2px 4px black;
+}
+
+#score-container{
+    text-align:center;
+    font-size:20px;
+}
+
+#developer-name{
+    text-align:center;
+    margin-top:4px;
+    font-size:14px;
+}
+
+#fuel-container{
+    width:100%;
+    height:20px;
+    background:#555;
+    border-radius:5px;
+    margin-top:8px;
+    overflow:hidden;
+    border:2px solid white;
+}
+
+#fuel-bar{
+    width:100%;
+    height:100%;
+    background:#2ecc71;
+}
+
+#controls{
+    position:absolute;
+    bottom:20px;
+    width:100%;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:18px;
+    z-index:50;
+}
+
+.control-btn{
+    width:78px;
+    height:78px;
+    border-radius:50%;
+    background:rgba(0,0,0,0.55);
+    color:white;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:32px;
+    font-weight:bold;
+    user-select:none;
+    border:2px solid rgba(255,255,255,0.2);
+}
+
+#pause-btn{
+    font-size:18px;
+    background:rgba(231,76,60,0.85);
+}
+
+#game-over{
+    display:none;
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    background:rgba(0,0,0,0.85);
+    padding:20px;
+    border-radius:10px;
+    text-align:center;
+    color:white;
+    z-index:100;
+    width:80%;
+}
+
+#restart-button{
+    margin-top:15px;
+    padding:10px 20px;
+    border:none;
+    border-radius:5px;
+    background:#e74c3c;
+    color:white;
+    font-size:18px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="game-container">
+
+    <div id="ui-container">
+
+        <div id="score-container">
+            <span id="score">Score: 0</span> |
+            <span id="high-score">High Score: 0</span>
+        </div>
+
+        <div id="developer-name">
+            Developer - Durgesh Kaiwart
+        </div>
+
+        <div id="fuel-container">
+            <div id="fuel-bar"></div>
+        </div>
+
+    </div>
+
+    <div id="player-car" class="game-object"></div>
+
+    <div id="game-over">
+        <h2>Car Crashed!</h2>
+        <p id="game-over-score"></p>
+        <button id="restart-button">Restart</button>
+    </div>
+
+</div>
+
+<div id="controls">
+    <div class="control-btn" id="left-btn">◄</div>
+    <div class="control-btn" id="pause-btn">PAUSE</div>
+    <div class="control-btn" id="right-btn">►</div>
+</div>
+
+<script>
+
+const gameContainer=document.getElementById('game-container');
+const playerCar=document.getElementById('player-car');
+
+const scoreDisplay=document.getElementById('score');
+const highScoreDisplay=document.getElementById('high-score');
+
+const fuelBar=document.getElementById('fuel-bar');
+
+const gameOver=document.getElementById('game-over');
+const gameOverScore=document.getElementById('game-over-score');
+
+const restartButton=document.getElementById('restart-button');
+
+const leftBtn=document.getElementById('left-btn');
+const rightBtn=document.getElementById('right-btn');
+const pauseBtn=document.getElementById('pause-btn');
+
+let score=0;
+let highScore=localStorage.getItem('highScore') || 0;
+
+let fuel=100;
+let gameSpeed=4;
+
+let paused=false;
+let gameRunning=true;
+
+let animationId;
+
+let roadLines=[];
+let enemyCars=[];
+let fuelCans=[];
+
+let playerX=175;
+
+let moveLeft=false;
+let moveRight=false;
+
+highScoreDisplay.innerText='High Score: '+highScore;
+
+/* SOUND EFFECTS */
+
+const engineSound=new Audio(
+'data:audio/wav;base64,UklGRlQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YRAAAAAA////AAAAAAAA////AAAAAAAA'
+);
+
+engineSound.loop=true;
+engineSound.volume=0.18;
+
+const crashSound=new Audio(
+'data:audio/wav;base64,UklGRjwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YRgAAAAA/////wAAAP///wAAAP///wAA'
+);
+
+const moveSound=new Audio(
+'data:audio/wav;base64,UklGRlQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YRAA////AAD//wAA//8AAP//AAAAAAAA'
+);
+
+moveSound.volume=0.08;
+
+const fuelSound=new Audio(
+'data:audio/wav;base64,UklGRlQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YRAAAP//AAD//wD///8AAAAAAAAA'
+);
+
+fuelSound.volume=0.18;
+
+function startEngine(){
+    engineSound.play().catch(()=>{});
+}
+
+document.body.addEventListener("touchstart",startEngine,{once:true});
+document.body.addEventListener("click",startEngine,{once:true});
+
+function createRoadLine(){
+
+    const line=document.createElement('div');
+
+    line.className='road-line';
+    line.style.top='-60px';
+
+    gameContainer.appendChild(line);
+
+    roadLines.push(line);
+}
+
+function createEnemyCar(){
+
+    const car=document.createElement('div');
+
+    car.className='game-object enemy-car';
+
+    car.style.top='-100px';
+
+    car.style.left=
+        Math.random()*
+        (gameContainer.offsetWidth-60)+'px';
+
+    gameContainer.appendChild(car);
+
+    enemyCars.push(car);
+}
+
+function createFuelCan(){
+
+    const fuel=document.createElement('div');
+
+    fuel.className='game-object fuel-can';
+
+    fuel.style.top='-50px';
+
+    fuel.style.left=
+        Math.random()*
+        (gameContainer.offsetWidth-50)+'px';
+
+    gameContainer.appendChild(fuel);
+
+    fuelCans.push(fuel);
+}
+
+function moveObjects(arr,speed){
+
+    for(let i=arr.length-1;i>=0;i--){
+
+        let obj=arr[i];
+
+        let top=parseFloat(obj.style.top);
+
+        top+=speed;
+
+        obj.style.top=top+'px';
+
+        if(top>window.innerHeight){
+
+            obj.remove();
+
+            arr.splice(i,1);
+
+            if(obj.classList.contains('enemy-car')){
+
+                score++;
+
+                scoreDisplay.innerText='Score: '+score;
+            }
+        }
+    }
+}
+
+function checkCollision(a,b){
+
+    return !(
+
+        a.right<b.left ||
+        a.left>b.right ||
+        a.bottom<b.top ||
+        a.top>b.bottom
+    );
+}
+
+function movePlayer(){
+
+    let moving=false;
+
+    if(moveLeft){
+        playerX -= 6;
+        moving=true;
+    }
+
+    if(moveRight){
+        playerX += 6;
+        moving=true;
+    }
+
+    if(moving){
+
+        moveSound.currentTime=0;
+        moveSound.play().catch(()=>{});
+    }
+
+    if(playerX < 0){
+        playerX = 0;
+    }
+
+    if(playerX > gameContainer.offsetWidth - 50){
+        playerX = gameContainer.offsetWidth - 50;
+    }
+
+    playerCar.style.left = playerX + 'px';
+}
+
+function gameLoop(){
+
+    if(!gameRunning || paused) return;
+
+    moveObjects(roadLines,gameSpeed);
+    moveObjects(enemyCars,gameSpeed+2);
+    moveObjects(fuelCans,gameSpeed+1);
+
+    if(Math.random()<0.1) createRoadLine();
+
+    if(Math.random()<0.02) createEnemyCar();
+
+    if(Math.random()<0.005) createFuelCan();
+
+    movePlayer();
+
+    const playerRect=
+        playerCar.getBoundingClientRect();
+
+    enemyCars.forEach(car=>{
+
+        if(
+            checkCollision(
+                playerRect,
+                car.getBoundingClientRect()
+            )
+        ){
+
+            gameRunning=false;
+
+            engineSound.pause();
+
+            crashSound.play();
+
+            cancelAnimationFrame(animationId);
+
+            if(score>highScore){
+
+                localStorage.setItem(
+                    'highScore',
+                    score
+                );
+            }
+
+            gameOver.style.display='block';
+
+            gameOverScore.innerText=
+                'Your Score: '+score;
+        }
+    });
+
+    fuelCans.forEach((can,index)=>{
+
+        if(
+            checkCollision(
+                playerRect,
+                can.getBoundingClientRect()
+            )
+        ){
+
+            fuel=Math.min(100,fuel+20);
+
+            fuelBar.style.width=fuel+'%';
+
+            fuelSound.currentTime=0;
+            fuelSound.play();
+
+            can.remove();
+
+            fuelCans.splice(index,1);
+        }
+    });
+
+    fuel-=0.03;
+
+    fuelBar.style.width=fuel+'%';
+
+    if(fuel<=0){
+
+        gameRunning=false;
+
+        engineSound.pause();
+
+        cancelAnimationFrame(animationId);
+
+        gameOver.style.display='block';
+
+        gameOverScore.innerText='Out Of Fuel!';
+    }
+
+    animationId=requestAnimationFrame(gameLoop);
+}
+
+/* FIXED RESTART FOR APK */
+
+function restartGame(){
+
+    gameRunning = true;
+    paused = false;
+
+    score = 0;
+    fuel = 100;
+    playerX = 175;
+
+    scoreDisplay.innerText = 'Score: 0';
+
+    fuelBar.style.width = '100%';
+
+    gameOver.style.display = 'none';
+
+    enemyCars.forEach(car => car.remove());
+    fuelCans.forEach(can => can.remove());
+    roadLines.forEach(line => line.remove());
+
+    enemyCars = [];
+    fuelCans = [];
+    roadLines = [];
+
+    playerCar.style.left = playerX + 'px';
+
+    engineSound.currentTime = 0;
+    engineSound.play();
+
+    cancelAnimationFrame(animationId);
+
+    gameLoop();
+}
+
+restartButton.addEventListener(
+    'click',
+    restartGame
+);
+
+leftBtn.addEventListener('touchstart',function(e){
+
+    e.preventDefault();
+
+    moveLeft=true;
+
+},{passive:false});
+
+leftBtn.addEventListener('touchend',function(e){
+
+    e.preventDefault();
+
+    moveLeft=false;
+
+},{passive:false});
+
+rightBtn.addEventListener('touchstart',function(e){
+
+    e.preventDefault();
+
+    moveRight=true;
+
+},{passive:false});
+
+rightBtn.addEventListener('touchend',function(e){
+
+    e.preventDefault();
+
+    moveRight=false;
+
+},{passive:false});
+
+leftBtn.addEventListener('mousedown',function(){
+
+    moveLeft=true;
+});
+
+leftBtn.addEventListener('mouseup',function(){
+
+    moveLeft=false;
+});
+
+rightBtn.addEventListener('mousedown',function(){
+
+    moveRight=true;
+});
+
+rightBtn.addEventListener('mouseup',function(){
+
+    moveRight=false;
+});
+
+document.addEventListener('mouseup',function(){
+
+    moveLeft=false;
+    moveRight=false;
+});
+
+pauseBtn.addEventListener('click',()=>{
+
+    paused=!paused;
+
+    if(paused){
+
+        pauseBtn.innerText='PLAY';
+
+        cancelAnimationFrame(animationId);
+
+        engineSound.pause();
+
+    }else{
+
+        pauseBtn.innerText='PAUSE';
+
+        engineSound.play();
+
+        gameLoop();
+    }
+});
+
+gameLoop();
+
+</script>
+
+</body>
+</html>
